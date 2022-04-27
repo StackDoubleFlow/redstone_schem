@@ -162,22 +162,62 @@ fn constant_range(world: &mut World, start: usize, constant: u32) {
     }
 }
 
-pub fn gen_rvc() {
+fn gen_ins<F>(name: &str, f: F)
+where
+    F: FnOnce(&mut World, &mut [usize; 32])
+{
     let mut world = World::new(32, 76, 10);
     let mut bit_slot = [0; 32];
 
-    connect_bit_range(&mut world, &mut bit_slot, 2, 3, 26);
-    connect_bit_range(&mut world, &mut bit_slot, 4, 6, 22);
-    connect_bit_range(&mut world, &mut bit_slot, 12, 12, 25);
-    connect_bit_range(&mut world, &mut bit_slot, 7, 11, 7);
-
-    constant_range(&mut world, 0, 0b0000011);
-    constant_range(&mut world, 12, 0b010); // funct3
-    constant_range(&mut world, 15, 0b00010); // x2/sp
+    f(&mut world, &mut bit_slot);
 
     let length = *bit_slot.iter().max().unwrap() * 2;
-    bus(&mut world, BlockPos::new(0, 0, 0), 16, length);
-    bus(&mut world, BlockPos::new(0, 0, 7), 32, length);
 
-    world.save_schematic("test.schem");
+    let concrete = world.add_block("minecraft:gray_concrete");
+    let wall_torch = world.add_block("minecraft:redstone_wall_torch[facing=south]");
+    let torch = world.add_block("minecraft:redstone_torch");
+    for i in 0..32 {
+        let pos = byte_pos(BlockPos::new(length, i * 2 + 1, 7));
+        world.set_block(pos, concrete);
+        world.set_block(pos.offset(0, 0, 1), wall_torch);
+    }
+    for i in 0..4 {
+        let y = i * 16;
+        wire_block(&mut world, byte_pos(BlockPos::new(length, y, 6)), concrete);
+        tower(&mut world, BlockPos::new(length, y + 1, 5), 13);
+
+        // layer repeater
+        if i < 3 {
+            let pos = byte_pos(BlockPos::new(length, y, 7)).offset(0, 16, 0);
+            world.set_block(pos, torch);
+            wire_block(&mut world, pos.offset(0, 1, 0), concrete);
+            world.set_block(pos.offset(0, 2, -1), concrete);
+            world.set_block(pos.offset(0, 3, -1), torch);
+        }
+    }
+    
+
+    bus(&mut world, BlockPos::new(0, 0, 0), 16, length + 1);
+    bus(&mut world, BlockPos::new(0, 0, 7), 32, length - 1);
+    bus(&mut world, BlockPos::new(0, 0, 9), 32, length + 1);
+
+    // let repeater = world.add_block("minecraft:repeater[facing=west]");
+    // for i in 0..32 {
+    //     world.set_block(byte_pos(BlockPos::new(length, i * 2 + 1, 0)), repeater);
+    // }
+
+    world.save_schematic(&format!("rvc/{}.schem", name));
+}
+
+pub fn gen_rvc() {
+    gen_ins("lwsp", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 3, 26);
+        connect_bit_range(world, bit_slot, 4, 6, 22);
+        connect_bit_range(world, bit_slot, 12, 12, 25);
+        connect_bit_range(world, bit_slot, 7, 11, 7);
+
+        constant_range(world, 0, 0b0000011);
+        constant_range(world, 12, 0b010); // funct3
+        constant_range(world, 15, 0b00010); // x2/sp
+    })
 }
