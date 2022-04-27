@@ -1,9 +1,9 @@
-use std::{collections::HashMap, fs::File};
+use std::{collections::HashMap, fs::File, cmp::Ordering};
 use serde::Serialize;
 
 pub const MC_DATA_VERSION: i32 = 2730;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct BlockPos {
     pub x: usize,
     pub y: usize,
@@ -14,6 +14,41 @@ impl BlockPos {
     pub fn new(x: usize, y: usize, z: usize) -> Self {
         Self { x, y, z }
     }
+
+    pub fn direction_to(self, other: BlockPos) -> BlockDirection {
+        match (self.x.cmp(&other.x), self.z.cmp(&other.z)) {
+            (Ordering::Greater, _) => BlockDirection::West,
+            (Ordering::Less, _) => BlockDirection::East,
+            (_, Ordering::Greater) => BlockDirection::North,
+            (_, Ordering::Less) => BlockDirection::South,
+            _ => unreachable!()
+        }
+    }
+
+    pub fn offset(self, x: isize, y: isize, z: isize) -> Self {
+        Self {
+            x: (self.x as isize + x) as usize,
+            y: (self.y as isize + y) as usize,
+            z: (self.z as isize + z) as usize,
+        }
+    }
+
+    pub fn offset_dir(self, dir: BlockDirection, amt: isize) -> BlockPos {
+        match dir {
+            BlockDirection::West => self.offset(-amt, 0, 0),
+            BlockDirection::East => self.offset(amt, 0, 0),
+            BlockDirection::North => self.offset(0, 0, -amt),
+            BlockDirection::South => self.offset(0, 0, amt),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BlockDirection {
+    North,
+    South,
+    East,
+    West,
 }
 
 pub struct World {
@@ -39,6 +74,9 @@ impl World {
     }
 
     pub fn set_block(&mut self, pos: BlockPos, block: u16) {
+        if pos.x >= self.sx || pos.y >= self.sy || pos.z >= self.sz {
+            panic!("out of bounds set_block to {:?}", pos);
+        }
         let idx = (self.sx * self.sy * pos.z) + (self.sx * pos.y) + pos.x;
         self.data[idx] = block;
     }
