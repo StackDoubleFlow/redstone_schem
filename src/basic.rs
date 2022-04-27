@@ -1,5 +1,4 @@
-use crate::world::{BlockPos, World, BlockDirection};
-
+use crate::world::{BlockDirection, BlockPos, World};
 
 pub fn create_wire(world: &mut World, block: u16, start: BlockPos, end: BlockPos, repeated: bool) {
     let wire = world.add_block("minecraft:redstone_wire");

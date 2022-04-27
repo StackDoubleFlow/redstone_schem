@@ -1,5 +1,9 @@
+//! Generation for RISC-V standard compressed instruction-set (RVC) decoders
+
 use crate::basic::create_wire;
-use crate::world::{World, BlockPos};
+use crate::world::{BlockPos, World};
+
+const CROSS_WIRE: &str = "minecraft:redstone_wire[north=side,east=side,west=side,south=side]";
 
 // Get position of wire with correct grouping
 fn byte_pos(mut pos: BlockPos) -> BlockPos {
@@ -10,7 +14,7 @@ fn byte_pos(mut pos: BlockPos) -> BlockPos {
 }
 
 fn wire_block(world: &mut World, mut pos: BlockPos, block: u16) {
-    let wire = world.add_block("minecraft:redstone_wire[north=side,east=side,west=side,south=side]");
+    let wire = world.add_block(CROSS_WIRE);
     world.set_block(pos, block);
     pos.y += 1;
     world.set_block(pos, wire);
@@ -25,7 +29,7 @@ fn tower(world: &mut World, start: BlockPos, height: usize) {
 
         let start_height = 14 - start.y % 16;
         tower(world, start, start_height);
-        
+
         let byte = start.y / 16;
         if height - start_height > 2 {
             pos.y = (byte + 1) * 16;
@@ -127,7 +131,13 @@ fn connect_bits(world: &mut World, x: usize, a: usize, b: usize) {
     tower(world, BlockPos::new(x, a * 2, 3), (b - a) * 2 - 1);
 }
 
-fn connect_bit_range(world: &mut World, bit_slot: &mut [usize], start: usize, end: usize, to: usize) {
+fn connect_bit_range(
+    world: &mut World,
+    bit_slot: &mut [usize],
+    start: usize,
+    end: usize,
+    to: usize,
+) {
     for (i, bit) in (start..=end).enumerate() {
         let a = bit;
         let b = to + i;

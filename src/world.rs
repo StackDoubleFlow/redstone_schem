@@ -1,5 +1,7 @@
-use std::{collections::HashMap, fs::File, cmp::Ordering};
 use serde::Serialize;
+use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::fs::File;
 
 pub const MC_DATA_VERSION: i32 = 2730;
 
@@ -21,7 +23,7 @@ impl BlockPos {
             (Ordering::Less, _) => BlockDirection::East,
             (_, Ordering::Greater) => BlockDirection::North,
             (_, Ordering::Less) => BlockDirection::South,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -64,7 +66,11 @@ impl World {
         let mut palette = HashMap::new();
         palette.insert("minecraft:air", 0);
         Self {
-            sx, sy, sz, data: vec![0; sx * sy * sz], palette
+            sx,
+            sy,
+            sz,
+            data: vec![0; sx * sy * sz],
+            palette,
         }
     }
 
@@ -88,13 +94,13 @@ impl World {
 
     pub fn save_schematic(&self, file_name: &str) {
         let mut file = File::create(file_name).unwrap();
-    
+
         let mut data = Vec::new();
         for y in 0..self.sy {
             for z in 0..self.sz {
                 for x in 0..self.sx {
                     let mut idx = self.get_block(BlockPos::new(x, y, z));
-    
+
                     loop {
                         let mut temp = (idx & 0b1111_1111) as u8;
                         idx >>= 7;
@@ -109,12 +115,12 @@ impl World {
                 }
             }
         }
-    
+
         let mut encoded_pallete = nbt::Blob::new();
         for (&entry, &i) in &self.palette {
             encoded_pallete.insert(entry, i as i32).unwrap();
         }
-    
+
         // TODO
         let block_entities = Vec::new();
         // for (pos, block_entity) in &clipboard.block_entities {
@@ -123,7 +129,7 @@ impl World {
         //         block_entities.push(blob);
         //     }
         // }
-    
+
         let metadata = Metadata {
             offset_x: 0,
             offset_y: 0,
