@@ -209,6 +209,7 @@ where
     let concrete = world.add_block("minecraft:gray_concrete");
     let wall_torch = world.add_block("minecraft:redstone_wall_torch[facing=south]");
     let torch = world.add_block("minecraft:redstone_torch");
+    let slab = world.add_block("minecraft:smooth_stone_slab[type=top]");
     for i in 0..32 {
         let pos = byte_pos(BlockPos::new(length, i * 2 + 1, 7));
         world.set_block(pos, concrete);
@@ -221,11 +222,13 @@ where
 
         // layer repeater
         if i < 3 {
-            let pos = byte_pos(BlockPos::new(length, y, 7)).offset(0, 16, 0);
-            world.set_block(pos, torch);
-            wire_block(&mut world, pos.offset(0, 1, 0), concrete);
-            world.set_block(pos.offset(0, 2, -1), concrete);
-            world.set_block(pos.offset(0, 3, -1), torch);
+            let pos = byte_pos(BlockPos::new(length, y, 4)).offset(0, 14, 0);
+            wire_block(&mut world, pos.offset(0, 0, 0), slab);
+            world.set_block(pos.offset(0, 1, -1), concrete);
+            world.set_block(pos.offset(0, 2, -1), torch);
+            create_wire(&mut world, concrete, pos.offset(0, 3, -1), pos.offset(0, 3, 1), false);
+            world.set_block(pos.offset(0, 4, 2), concrete);
+            world.set_block(pos.offset(0, 5, 2), torch);
         }
     }
     
