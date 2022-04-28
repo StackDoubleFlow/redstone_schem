@@ -17,9 +17,9 @@ pub fn create_wire(world: &mut World, block: u16, start: BlockPos, end: BlockPos
 
         if ss > 0 || !repeated {
             world.set_block(cur.offset(0, 1, 0), wire);
-            ss = 15;
         } else {
             world.set_block(cur.offset(0, 1, 0), repeater);
+            ss = 15;
         }
 
         if cur == end {

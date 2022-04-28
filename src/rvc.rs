@@ -1,7 +1,7 @@
 //! Generation for RISC-V standard compressed instruction-set (RVC) decoders
 
 use crate::basic::create_wire;
-use crate::world::{BlockPos, World, self};
+use crate::world::{BlockPos, World};
 
 const CROSS_WIRE: &str = "minecraft:redstone_wire[north=side,east=side,west=side,south=side]";
 
@@ -72,12 +72,12 @@ fn tower(world: &mut World, start: BlockPos, height: usize) {
     }
 }
 
-fn bus(world: &mut World, start: BlockPos, bits: usize, length: usize) {
+fn bus(world: &mut World, start: BlockPos, bits: usize, length: usize, repeated: bool) {
     let concrete = world.add_block("minecraft:gray_concrete");
     for i in 0..bits {
         let start = byte_pos(start.offset(0, i as isize * 2, 0));
         let end = start.offset(length as isize, 0, 0);
-        create_wire(world, concrete, start, end, true);
+        create_wire(world, concrete, start, end, repeated);
     }
 }
 
@@ -230,9 +230,9 @@ where
     }
     
 
-    bus(&mut world, BlockPos::new(0, 0, 0), 16, length + 1);
-    bus(&mut world, BlockPos::new(0, 0, 7), 32, length - 1);
-    bus(&mut world, BlockPos::new(0, 0, 9), 32, length + 1);
+    bus(&mut world, BlockPos::new(0, 0, 0), 16, length + 1, false);
+    bus(&mut world, BlockPos::new(0, 0, 7), 32, length - 1, true);
+    bus(&mut world, BlockPos::new(0, 0, 9), 32, length + 1, false);
 
     // let repeater = world.add_block("minecraft:repeater[facing=west]");
     // for i in 0..32 {
