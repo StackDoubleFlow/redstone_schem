@@ -1,7 +1,7 @@
 //! Generation for RISC-V standard compressed instruction-set (RVC) decoders
 
 use crate::basic::create_wire;
-use crate::world::{BlockPos, World};
+use crate::world::{BlockPos, World, self};
 
 const CROSS_WIRE: &str = "minecraft:redstone_wire[north=side,east=side,west=side,south=side]";
 
@@ -150,6 +150,39 @@ fn connect_bit_range(
     }
 }
 
+fn extend_bit(
+    world: &mut World,
+    bit_slot: &mut [usize],
+    bit: usize,
+    start: usize,
+    end: usize,
+) {
+    let slot = *bit_slot[bit..=end].iter().max().unwrap();
+    connect_bits(world, slot * 2, bit, end);
+
+    let concrete = world.add_block("minecraft:gray_concrete");
+    let repeater = world.add_block("minecraft:repeater[facing=north]");
+    let slab = world.add_block("minecraft:smooth_stone_slab[type=top]");
+    for b in start + 1..end {
+        let pos = byte_pos(BlockPos::new(slot * 2, b * 2, 6));
+        world.set_block(pos, concrete);
+        world.set_block(pos.offset(0, 1, 0), repeater);
+        if b % 16 == 1 {
+            // use slab for bit below
+            wire_block(world, pos.offset(0, 0, -1), slab);
+        } else {
+            wire_block(world, pos.offset(0, 0, -1), concrete);
+        }
+
+        // change slab to block 
+        if b % 16 == 0 {
+            world.set_block(pos.offset(0, 1, -2), concrete);
+        }
+    }
+
+    bit_slot[bit..=end].iter_mut().for_each(|s| *s = slot + 1);
+}
+
 fn constant_range(world: &mut World, start: usize, constant: u32) {
     let redstone_block = world.add_block("minecraft:redstone_block");
     for i in 0..32 {
@@ -166,7 +199,7 @@ fn gen_ins<F>(name: &str, f: F)
 where
     F: FnOnce(&mut World, &mut [usize; 32])
 {
-    let mut world = World::new(32, 76, 10);
+    let mut world = World::new(48, 76, 10);
     let mut bit_slot = [0; 32];
 
     f(&mut world, &mut bit_slot);
@@ -206,7 +239,7 @@ where
     //     world.set_block(byte_pos(BlockPos::new(length, i * 2 + 1, 0)), repeater);
     // }
 
-    world.save_schematic(&format!("rvc/{}.schem", name));
+    world.save_schematic(&format!("rvc/rvc_{}.schem", name));
 }
 
 pub fn gen_rvc() {
@@ -219,5 +252,183 @@ pub fn gen_rvc() {
         constant_range(world, 0, 0b0000011);
         constant_range(world, 12, 0b010); // funct3
         constant_range(world, 15, 0b00010); // x2/sp
-    })
+    });
+    gen_ins("swsp", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 6, 20);
+        connect_bit_range(world, bit_slot, 7, 8, 26);
+        connect_bit_range(world, bit_slot, 9, 11, 9);
+        connect_bit_range(world, bit_slot, 12, 12, 25);
+
+        constant_range(world, 0, 0b0100011);
+        constant_range(world, 12, 0b010); // funct3
+        constant_range(world, 15, 0b00010); // x2/sp
+    });
+    gen_ins("lw", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 4, 7);
+        connect_bit_range(world, bit_slot, 5, 5, 26);
+        connect_bit_range(world, bit_slot, 6, 6, 22);
+        connect_bit_range(world, bit_slot, 7, 9, 15);
+        connect_bit_range(world, bit_slot, 10, 12, 23);
+
+        constant_range(world, 0, 0b0000011);
+        constant_range(world, 12, 0b010); // funct3
+    });
+    gen_ins("sw", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 4, 20);
+        connect_bit_range(world, bit_slot, 5, 5, 26);
+        connect_bit_range(world, bit_slot, 6, 6, 9);
+        connect_bit_range(world, bit_slot, 7, 9, 15);
+        connect_bit_range(world, bit_slot, 10, 11, 10);
+        connect_bit_range(world, bit_slot, 12, 12, 25);
+
+        constant_range(world, 0, 0b0100011);
+        constant_range(world, 12, 0b010); // funct3
+    });
+    gen_ins("j", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 2, 25);
+        connect_bit_range(world, bit_slot, 3, 5, 21);
+        connect_bit_range(world, bit_slot, 6, 6, 27);
+        connect_bit_range(world, bit_slot, 7, 7, 26);
+        connect_bit_range(world, bit_slot, 8, 8, 30);
+        connect_bit_range(world, bit_slot, 9, 10, 28);
+        connect_bit_range(world, bit_slot, 11, 11, 24);
+        extend_bit(world, bit_slot, 12, 12, 20);
+        connect_bit_range(world, bit_slot, 12, 12, 31);
+
+        constant_range(world, 0, 0b1101111);
+    });
+    gen_ins("jal", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 2, 25);
+        connect_bit_range(world, bit_slot, 3, 5, 21);
+        connect_bit_range(world, bit_slot, 6, 6, 27);
+        connect_bit_range(world, bit_slot, 7, 7, 26);
+        connect_bit_range(world, bit_slot, 8, 8, 30);
+        connect_bit_range(world, bit_slot, 9, 10, 28);
+        connect_bit_range(world, bit_slot, 11, 11, 24);
+        extend_bit(world, bit_slot, 12, 12, 20);
+        connect_bit_range(world, bit_slot, 12, 12, 31);
+
+        constant_range(world, 0, 0b1101111);
+        constant_range(world, 7, 0b00001); // x1/lr
+    });
+    gen_ins("jr", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 7, 11, 15);
+
+        constant_range(world, 0, 0b1100111);
+    });
+    gen_ins("jalr", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 7, 11, 15);
+
+        constant_range(world, 0, 0b1100111);
+        constant_range(world, 7, 0b00001); // x1/lr
+    });
+    gen_ins("beqz", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 2, 25);
+        connect_bit_range(world, bit_slot, 3, 4, 8);
+        connect_bit_range(world, bit_slot, 5, 6, 26);
+        connect_bit_range(world, bit_slot, 7, 9, 15);
+        connect_bit_range(world, bit_slot, 10, 11, 10);
+        connect_bit_range(world, bit_slot, 12, 12, 28);
+
+        constant_range(world, 0, 0b1100011);
+    });
+
+    gen_ins("bnez", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 2, 25);
+        connect_bit_range(world, bit_slot, 3, 4, 8);
+        connect_bit_range(world, bit_slot, 5, 6, 26);
+        connect_bit_range(world, bit_slot, 7, 9, 15);
+        connect_bit_range(world, bit_slot, 10, 11, 10);
+        connect_bit_range(world, bit_slot, 12, 12, 28);
+
+        constant_range(world, 0, 0b1100011);
+        constant_range(world, 12, 0b001); // funct3
+    });
+    gen_ins("li", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 6, 20);
+        connect_bit_range(world, bit_slot, 7, 11, 7);
+        connect_bit_range(world, bit_slot, 12, 12, 25);
+
+        constant_range(world, 0, 0b0010011);
+    });
+    gen_ins("lui", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 6, 12);
+        connect_bit_range(world, bit_slot, 7, 11, 7);
+        extend_bit(world, bit_slot, 12, 17, 31);
+
+        constant_range(world, 0, 0b0110111);
+    });
+    gen_ins("addi", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 6, 20);
+        connect_bit_range(world, bit_slot, 7, 11, 7);
+        connect_bit_range(world, bit_slot, 7, 11, 15);
+        extend_bit(world, bit_slot, 12, 25, 31);
+
+        constant_range(world, 0, 0b0010011);
+    });
+    gen_ins("addi16sp", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 2, 25);
+        connect_bit_range(world, bit_slot, 3, 4, 27);
+        connect_bit_range(world, bit_slot, 5, 5, 26);
+        connect_bit_range(world, bit_slot, 6, 6, 24);
+        connect_bit_range(world, bit_slot, 7, 11, 7);
+        connect_bit_range(world, bit_slot, 7, 11, 15);
+        extend_bit(world, bit_slot, 12, 25, 31);
+
+        constant_range(world, 0, 0b0010011);
+    });
+    gen_ins("addi4spn", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 4, 7);
+        connect_bit_range(world, bit_slot, 5, 5, 23);
+        connect_bit_range(world, bit_slot, 6, 6, 22);
+        connect_bit_range(world, bit_slot, 7, 10, 26);
+        connect_bit_range(world, bit_slot, 11, 12, 24);
+
+        constant_range(world, 0, 0b0010011);
+    });
+    gen_ins("slli", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 6, 20);
+        connect_bit_range(world, bit_slot, 7, 11, 7);
+        connect_bit_range(world, bit_slot, 7, 11, 15);
+
+        constant_range(world, 0, 0b0010011);
+        constant_range(world, 12, 0b001); // funct3
+    });
+    gen_ins("srli_srai", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 6, 20);
+        connect_bit_range(world, bit_slot, 7, 9, 7);
+        connect_bit_range(world, bit_slot, 7, 9, 15);
+
+        constant_range(world, 0, 0b0010011);
+        constant_range(world, 12, 0b101); // funct3
+    });
+    gen_ins("andi", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 4, 20);
+        connect_bit_range(world, bit_slot, 7, 9, 7);
+        connect_bit_range(world, bit_slot, 7, 9, 15);
+        extend_bit(world, bit_slot, 12, 25, 31);
+
+        constant_range(world, 0, 0b0010011);
+        constant_range(world, 12, 0b101); // funct3
+    });
+    gen_ins("sub_xor_or_and", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 4, 20);
+        connect_bit_range(world, bit_slot, 7, 9, 7);
+        connect_bit_range(world, bit_slot, 7, 9, 15);
+
+        constant_range(world, 0, 0b0110011);
+    });
+    gen_ins("add", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 6, 20);
+        connect_bit_range(world, bit_slot, 7, 11, 7);
+        connect_bit_range(world, bit_slot, 7, 11, 15);
+
+        constant_range(world, 0, 0b0110011);
+    });
+    gen_ins("mv", |world, bit_slot| {
+        connect_bit_range(world, bit_slot, 2, 6, 20);
+        connect_bit_range(world, bit_slot, 7, 11, 7);
+
+        constant_range(world, 0, 0b0110011);
+    });
 }

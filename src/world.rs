@@ -132,8 +132,8 @@ impl World {
 
         let metadata = Metadata {
             offset_x: 0,
-            offset_y: 0,
-            // offset_y: -(self.sy as i32),
+            // offset_y: 0,
+            offset_y: -(self.sy as i32),
             offset_z: 0,
         };
         let schematic = Schematic {
