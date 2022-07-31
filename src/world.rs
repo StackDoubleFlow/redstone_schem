@@ -5,7 +5,19 @@ use std::fs::File;
 
 pub const MC_DATA_VERSION: i32 = 2730;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+macro_rules! map(
+    { $($key:expr => $value:expr),+ } => {
+        {
+            let mut m = ::std::collections::HashMap::new();
+            $(
+                m.insert($key.into(), $value);
+            )+
+            m
+        }
+     };
+);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct BlockPos {
     pub x: usize,
     pub y: usize,
@@ -59,6 +71,7 @@ pub struct World {
     sz: usize,
     data: Vec<u16>,
     palette: HashMap<&'static str, u16>,
+    barrels: HashMap<BlockPos, u32>,
 }
 
 impl World {
@@ -71,6 +84,7 @@ impl World {
             sz,
             data: vec![0; sx * sy * sz],
             palette,
+            barrels: HashMap::new(),
         }
     }
 
@@ -87,9 +101,15 @@ impl World {
         self.data[idx] = block;
     }
 
-    fn get_block(&self, pos: BlockPos) -> u16 {
+    pub fn get_block(&self, pos: BlockPos) -> u16 {
         let idx = (self.sx * self.sy * pos.z) + (self.sx * pos.y) + pos.x;
         self.data[idx]
+    }
+
+    pub fn set_barrel(&mut self, pos: BlockPos, ss: u32) {
+        let barrel = self.add_block("minecraft:barrel");
+        self.set_block(pos, barrel);
+        self.barrels.insert(pos, ss);
     }
 
     pub fn save_schematic(&self, file_name: &str) {
@@ -121,14 +141,30 @@ impl World {
             encoded_pallete.insert(entry, i as i32).unwrap();
         }
 
-        // TODO
         let block_entities = Vec::new();
-        // for (pos, block_entity) in &clipboard.block_entities {
-        //     if let Some(mut blob) = block_entity.to_nbt(false) {
-        //         blob.insert("Pos", nbt::Value::IntArray(vec![pos.x, pos.y, pos.z]))?;
-        //         block_entities.push(blob);
-        //     }
-        // }
+
+        for (pos, &ss) in &self.barrels {
+            let slots = 27;
+            let items_needed = match ss {
+                0 => 0,
+                15 => slots * 64,
+                _ => ((32 * slots * ss as u32) as f32 / 7.0 - 1.0).ceil() as u32,
+            } as usize;
+            let mut blob = nbt::Blob::new();
+            blob.insert("Id", nbt::Value::String("minecraft:barrrel".to_string())).unwrap();
+            blob.insert("Pos", nbt::Value::IntArray(vec![pos.x as i32, pos.y as i32, pos.z as i32])).unwrap();
+
+            let mut items = Vec::new();
+            for (slot, items_added) in (0..items_needed).step_by(64).enumerate() {
+                let count = (items_needed - items_added).min(64);
+                items.push(nbt::Value::Compound(map! {
+                    "Count" => nbt::Value::Byte(count as i8),
+                    "id" => nbt::Value::String("minecraft:redstone".to_owned()),
+                    "Slot" => nbt::Value::Byte(slot as i8)
+                }));
+            }
+            blob.insert("Items", nbt::Value::List(items)).unwrap();
+        }
 
         let metadata = Metadata {
             offset_x: 0,
