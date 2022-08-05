@@ -1,7 +1,7 @@
 //! Generation for RISC-V standard compressed instruction-set (RVC) decoders
 
-use crate::basic::create_wire;
-use crate::world::{BlockPos, World};
+use redstone_schem::basic::create_wire;
+use redstone_schem::world::{BlockPos, World};
 
 const CROSS_WIRE: &str = "minecraft:redstone_wire[north=side,east=side,west=side,south=side]";
 

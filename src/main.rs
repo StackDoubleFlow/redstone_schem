@@ -1,8 +1,6 @@
-use rvc::gen_rvc;
-
-mod basic;
 mod rvc;
-mod world;
+
+use rvc::gen_rvc;
 
 fn main() {
     gen_rvc();
