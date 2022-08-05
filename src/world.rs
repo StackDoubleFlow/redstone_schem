@@ -112,7 +112,7 @@ impl World {
         self.barrels.insert(pos, ss);
     }
 
-    pub fn save_schematic(&self, file_name: &str) {
+    pub fn save_schematic(&self, file_name: &str, off_x: i32, off_y: i32, off_z: i32) {
         let mut file = File::create(file_name).unwrap();
 
         let mut data = Vec::new();
@@ -167,10 +167,9 @@ impl World {
         }
 
         let metadata = Metadata {
-            offset_x: 0,
-            // offset_y: 0,
-            offset_y: -(self.sy as i32) + 1,
-            offset_z: -9,
+            offset_x: off_x as i32,
+            offset_y: off_y as i32,
+            offset_z: off_z as i32,
         };
         let schematic = Schematic {
             width: self.sx as i16,
