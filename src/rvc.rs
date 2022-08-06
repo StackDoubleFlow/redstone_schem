@@ -150,13 +150,7 @@ fn connect_bit_range(
     }
 }
 
-fn extend_bit(
-    world: &mut World,
-    bit_slot: &mut [usize],
-    bit: usize,
-    start: usize,
-    end: usize,
-) {
+fn extend_bit(world: &mut World, bit_slot: &mut [usize], bit: usize, start: usize, end: usize) {
     let slot = *bit_slot[bit..=end].iter().max().unwrap();
     connect_bits(world, slot * 2, bit, end);
 
@@ -174,7 +168,7 @@ fn extend_bit(
             wire_block(world, pos.offset(0, 0, -1), concrete);
         }
 
-        // change slab to block 
+        // change slab to block
         if b % 16 == 0 {
             world.set_block(pos.offset(0, 1, -2), concrete);
         }
@@ -197,7 +191,7 @@ fn constant_range(world: &mut World, start: usize, constant: u32) {
 
 fn gen_ins<F>(name: &str, f: F)
 where
-    F: FnOnce(&mut World, &mut [usize; 32])
+    F: FnOnce(&mut World, &mut [usize; 32]),
 {
     let mut world = World::new(48, 76, 10);
     let mut bit_slot = [0; 32];
@@ -226,12 +220,17 @@ where
             wire_block(&mut world, pos.offset(0, 0, 0), slab);
             world.set_block(pos.offset(0, 1, -1), concrete);
             world.set_block(pos.offset(0, 2, -1), torch);
-            create_wire(&mut world, concrete, pos.offset(0, 3, -1), pos.offset(0, 3, 1), false);
+            create_wire(
+                &mut world,
+                concrete,
+                pos.offset(0, 3, -1),
+                pos.offset(0, 3, 1),
+                false,
+            );
             world.set_block(pos.offset(0, 4, 2), concrete);
             world.set_block(pos.offset(0, 5, 2), torch);
         }
     }
-    
 
     bus(&mut world, BlockPos::new(0, 0, 0), 16, length + 1, false);
     bus(&mut world, BlockPos::new(0, 0, 7), 32, length - 1, true);
@@ -242,7 +241,7 @@ where
     //     world.set_block(byte_pos(BlockPos::new(length, i * 2 + 1, 0)), repeater);
     // }
 
-    world.save_schematic(&format!("rvc/rvc_{}.schem", name));
+    world.save_schematic(&format!("rvc/rvc_{}.schem", name), 0, -75, -9);
 }
 
 pub fn gen_rvc() {

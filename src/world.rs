@@ -151,8 +151,13 @@ impl World {
                 _ => ((32 * slots * ss as u32) as f32 / 7.0 - 1.0).ceil() as u32,
             } as usize;
             let mut blob = nbt::Blob::new();
-            blob.insert("Id", nbt::Value::String("minecraft:barrrel".to_string())).unwrap();
-            blob.insert("Pos", nbt::Value::IntArray(vec![pos.x as i32, pos.y as i32, pos.z as i32])).unwrap();
+            blob.insert("Id", nbt::Value::String("minecraft:barrrel".to_string()))
+                .unwrap();
+            blob.insert(
+                "Pos",
+                nbt::Value::IntArray(vec![pos.x as i32, pos.y as i32, pos.z as i32]),
+            )
+            .unwrap();
 
             let mut items = Vec::new();
             for (slot, items_added) in (0..items_needed).step_by(64).enumerate() {
