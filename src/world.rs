@@ -141,8 +141,7 @@ impl World {
             encoded_pallete.insert(entry, i as i32).unwrap();
         }
 
-        let block_entities = Vec::new();
-
+        let mut block_entities = Vec::new();
         for (pos, &ss) in &self.barrels {
             let slots = 27;
             let items_needed = match ss {
@@ -151,7 +150,7 @@ impl World {
                 _ => ((32 * slots * ss as u32) as f32 / 7.0 - 1.0).ceil() as u32,
             } as usize;
             let mut blob = nbt::Blob::new();
-            blob.insert("Id", nbt::Value::String("minecraft:barrrel".to_string()))
+            blob.insert("Id", nbt::Value::String("minecraft:barrel".to_string()))
                 .unwrap();
             blob.insert(
                 "Pos",
@@ -169,6 +168,7 @@ impl World {
                 }));
             }
             blob.insert("Items", nbt::Value::List(items)).unwrap();
+            block_entities.push(blob);
         }
 
         let metadata = Metadata {
