@@ -2,6 +2,7 @@ use serde::Serialize;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fs::File;
+use std::io::Write;
 
 pub const MC_DATA_VERSION: i32 = 2730;
 
@@ -114,6 +115,12 @@ impl World {
 
     pub fn save_schematic(&self, file_name: &str, off_x: i32, off_y: i32, off_z: i32) {
         let mut file = File::create(file_name).unwrap();
+        let data = self.data(off_x, off_y, off_z);
+        file.write_all(&data).unwrap();
+    }
+
+    pub fn data(&self, off_x: i32, off_y: i32, off_z: i32) -> Vec<u8> {
+        let mut out = Vec::new();
 
         let mut data = Vec::new();
         for y in 0..self.sy {
@@ -187,7 +194,9 @@ impl World {
             version: 2,
             data_version: MC_DATA_VERSION,
         };
-        nbt::to_gzip_writer(&mut file, &schematic, Some("Schematic")).unwrap();
+        nbt::to_gzip_writer(&mut out, &schematic, Some("Schematic")).unwrap();
+
+        out
     }
 }
 
